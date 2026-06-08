@@ -214,15 +214,25 @@ Evaluated exclusively on the 136 Qatar 2022 World Cup matches in the test set, X
 
 #### Match Probability Precomputation
 
-All possible ordered pairs of WC 2026 teams (48 × 47 = 2,256 pairs) are evaluated in a single batched `predict_proba` call before the simulation loop begins. The resulting probabilities are stored in a dictionary `prob_cache` indexed by `(home_team, away_team)`.
+All possible ordered pairs of WC 2026 teams (48 × 47 = 2,256 pairs) are evaluated
+in a single batched `predict_proba` call before the simulation loop begins. The
+resulting probabilities are stored in a dictionary `prob_cache` indexed by
+`(home_team, away_team)`.
 
-This reduces the Monte Carlo loop from over 1,000,000 individual model calls to simple dictionary lookups, bringing the total simulation time from an estimated 9–10 hours down to approximately 3–5 minutes.
+This reduces the Monte Carlo loop from over 1,000,000 individual model calls to
+simple dictionary lookups, bringing the total simulation time from an estimated
+9–10 hours down to approximately 3–5 minutes.
 
 #### Group Stage Simulation
 
-Each group plays a full round-robin of 6 matches. Match results are sampled stochastically from the model's probability distribution using `numpy.random.choice`. Goal counts are generated using a Poisson distribution parameterized by each team's recent average goals scored and conceded, then aligned to match the sampled result.
+Each group plays a full round-robin of 6 matches. Match results are sampled
+stochastically from the model's probability distribution using
+`numpy.random.choice`. Goal counts are generated using a Poisson distribution
+parameterized by each team's recent average goals scored and conceded, then
+aligned to match the sampled result.
 
-Group standings are sorted by points, goal difference, and goals scored, following FIFA 2026 tiebreaker rules.
+Group standings are sorted by points, goal difference, and goals scored,
+following FIFA 2026 tiebreaker rules.
 
 #### Advancement Rules
 
@@ -233,13 +243,38 @@ Following the 2026 WC format, 32 teams advance from the group stage:
 
 #### Monte Carlo Simulation
 
-10,000 independent full-tournament simulations are run. In each simulation, all group stage matches and all knockout matches are sampled stochastically from the model's probability distribution. Draws in knockout matches are resolved through a simulated extra time and penalty shootout.
+10,000 independent full-tournament simulations are run. In each simulation, all
+group stage matches and all knockout matches are sampled stochastically from the
+model's probability distribution. Draws in knockout matches are resolved through
+a simulated extra time and penalty shootout.
 
-Championship probability for each team is computed as the proportion of simulations in which that team wins the Final.
+Championship probability for each team is computed as the proportion of
+simulations in which that team wins the Final.
 
 #### Score Distribution
 
-For each of the 103 tournament matches (72 group stage + 31 knockout), 10,000 additional simulations are run independently to determine the most likely scoreline. Goal counts are generated with Poisson sampling and the most frequent scoreline across the 10,000 simulations is reported alongside the top 3 most common scores and their frequencies.
+For each of the 103 tournament matches (72 group stage + 31 knockout), 10,000
+simulations are run to determine the most likely scoreline. Goal counts are
+generated with a Poisson distribution and the most frequent scoreline is reported
+alongside the top 3 most common scores and their frequencies.
+
+For the group stage, all 72 matchups are fixed by the official draw, so each is
+simulated 10,000 times directly.
+
+For the knockout stage, the bracket is not fixed in advance — which teams reach
+each round depends on prior results. To address this, a separate set of 10,000
+full tournament simulations is run while tracking which specific teams appear in
+each bracket slot at every stage. For each slot, the most likely matchup is
+identified and then simulated 10,000 times independently for the score.
+
+The final display shows four pieces of information per knockout match:
+
+| Field | Description |
+|-------|-------------|
+| Most likely matchup | The two teams that appeared most often in that bracket slot |
+| Reach probability | % of simulations in which each team reached that round |
+| Matchup frequency | % of simulations in which those two specific teams met in that slot |
+| Most likely score | The scoreline that appeared most often across 10,000 simulations of that matchup |
 
 ## Results
 
